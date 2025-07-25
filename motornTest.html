@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Motor N - Sistema DIG</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: monospace;
+      padding: 20px;
+    }
+    canvas {
+      border: 1px solid #555;
+      display: block;
+      margin-bottom: 20px;
+      width: 400px; 
+      height: 400px;
+    }
+    #noutput-console, #log-output {
+      padding: 1em;
+      border-radius: 10px;
+      font-size: 14px;
+      white-space: pre-line;
+    }
+    #noutput-console {
+      background: #000;
+      color: #0f0;
+    }
+    #log-output {
+      background: #222;
+      color: #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 0.5em 1em;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #inject-btn { background: #0a0; color: white; }
+    #export-btn { background-color: #007acc; color: white; border: none; }
+  </style>
+</head>
+<body>
+
+<h2>🧠 Motor N – Simulación Informacional DIG</h2>
+<canvas id="campo" width="400" height="400"></canvas>
+
+<button id="inject-btn" onclick="inyectarPatron('ansiedad')">💥 Inyectar patrón: ansiedad</button>
+<button id="export-btn" onclick="exportarOutput()">📤 Exportar Output como .json</button>
+
+<div id="noutput-console">🧠 Aún no hay datos.</div>
+<h3>📜 Historial de Outputs</h3>
+<div id="log-output">Sin entradas aún.</div>
+
+<script>
+  const ancho = 50;
+  const alto = 50;
+  let campo = [];
+  let historialOutputs = [];
+
+  // Inicializa el campo con valores aleatorios
+  function inicializarCampo() {
+    campo = Array.from({ length: alto }, () =>
+      Array.from({ length: ancho }, () => Math.random())
+    );
+  }
+
+  // Inyecta un patrón en una zona específica
+  function inyectarPatron(nombre) {
+    const zona = {
+      x: 21,
+      y: 21,
+      ancho: 7,
+      alto: 7
+    };
+
+    // Actualiza valores en la zona
+    for (let i = 0; i < zona.alto; i++) {
+      for (let j = 0; j < zona.ancho; j++) {
+        const y = zona.y + i;
+        const x = zona.x + j;
+        if (y < alto && x < ancho) {
+          // Nuevo: Incrementa gradualmente en lugar de reemplazar
+          campo[y][x] = Math.min(1, campo[y][x] + Math.random() * 0.3);
+        }
+      }
+    }
+
+    const output = generarOutput(nombre, zona);
+    mostrarOutputEnConsola(output);
+    actualizarLog();
+    renderizarCampo();
+  }
+
+  // Genera el output con métricas del sistema
+  function generarOutput(patron, zona) {
+    let total = 0;
+    let maxVal = 0;
+    let maxPos = { x: 0, y: 0 };
+
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) {
+        const val = campo[y][x];
+        total += val;
+        if (val > maxVal) {
+          maxVal = val;
+          maxPos = { x, y };
+        }
+      }
+    }
+
+    const promedio = total / (ancho * alto);
+    const varianza = calcularVarianza(promedio);
+
+    return {
+      timestamp: new Date().toISOString(),
+      patron_inyectado: patron,
+      modo_inyeccion: "acumulativo", // Modificado
+      zona_afectada: zona,
+      entropia_global: varianza,
+      max_entropia: {
+        valor: maxVal,
+        posicion: maxPos
+      },
+      promedio_global: promedio,
+      tiempo_disolucion_estimado: `${Math.floor(20 - promedio * 10)} ciclos`, // Dinámico
+      resonancia_detectada: varianza > 0.05, // Nueva lógica
+      exportado_como_audio: "no",
+      notas: `Respuesta al patrón '${patron}'. Intensidad: ${(maxVal * 100).toFixed(1)}%`
+    };
+  }
+
+  // Cálculo de varianza
+  function calcularVarianza(promedio) {
+    let sum = 0;
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) {
+        sum += Math.pow(campo[y][x] - promedio, 2);
+      }
+    }
+    return sum / (ancho * alto);
+  }
+
+  // Renderiza el campo con escala mejorada
+  function renderizarCampo() {
+    const canvas = document.getElementById("campo");
+    const ctx = canvas.getContext("2d");
+    const escalaX = canvas.width / ancho;
+    const escalaY = canvas.height / alto;
+
+    // Limpiar canvas
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Dibujar celdas
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) {
+        const val = campo[y][x];
+        // Gradiente de color mejorado
+        const r = Math.floor(val * 255);
+        const g = Math.floor((1 - val) * 100);
+        const b = Math.floor(val * 100);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x * escalaX, y * escalaY, escalaX, escalaY);
+      }
+    }
+
+    // Dibujar cuadrícula
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= ancho; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * escalaX, 0);
+      ctx.lineTo(x * escalaX, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= alto; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * escalaY);
+      ctx.lineTo(canvas.width, y * escalaY);
+      ctx.stroke();
+    }
+  }
+
+  // Muestra los datos en la consola
+  function mostrarOutputEnConsola(output) {
+    const consola = document.getElementById("noutput-console");
+    consola.innerHTML = `
+🧠 <strong>Patrón:</strong> ${output.patron_inyectado}
+📍 <strong>Zona:</strong> (${output.zona_afectada.x},${output.zona_afectada.y}) – ${output.zona_afectada.ancho}x${output.zona_afectada.alto}
+📊 <strong>Entropía:</strong> ${output.entropia_global.toFixed(5)}
+🔥 <strong>Pico:</strong> (${output.max_entropia.posicion.x}, ${output.max_entropia.posicion.y}) → ${output.max_entropia.valor.toFixed(5)}
+📈 <strong>Promedio:</strong> ${output.promedio_global.toFixed(3)}
+⏳ <strong>Disolución:</strong> ${output.tiempo_disolucion_estimado}
+🎵 <strong>Resonancia:</strong> ${output.resonancia_detectada ? '✅' : '❌'}
+📌 <strong>Notas:</strong> ${output.notas}
+    `;
+    historialOutputs.push(output);
+  }
+
+  // Actualiza el historial
+  function actualizarLog() {
+    const log = document.getElementById("log-output");
+    log.innerHTML = historialOutputs.map((o, i) => {
+      const fecha = new Date(o.timestamp).toLocaleTimeString();
+      return `#${i + 1} [${fecha}] → ${o.patron_inyectado} | Entropía: ${o.entropia_global.toFixed(5)} | Pico: ${o.max_entropia.valor.toFixed(5)}`;
+    }).join('\n');
+  }
+
+  // Exporta los datos
+  function exportarOutput() {
+    if (historialOutputs.length === 0) {
+      alert("No hay datos para exportar.");
+      return;
+    }
+
+    const data = JSON.stringify(historialOutputs, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `noutput_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Inicializar
+  inicializarCampo();
+  renderizarCampo();
+</script>
+</body>
+</html>

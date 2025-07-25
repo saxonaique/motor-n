@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Motor N - Sistema DIG (Animado)</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: monospace;
+      padding: 20px;
+    }
+    canvas {
+      border: 1px solid #555;
+      display: block;
+      margin-bottom: 20px;
+      image-rendering: pixelated;
+    }
+    #noutput-console, #log-output {
+      padding: 1em;
+      border-radius: 10px;
+      font-size: 14px;
+      white-space: pre-line;
+    }
+    #noutput-console {
+      background: #000;
+      color: #0f0;
+    }
+    #log-output {
+      background: #222;
+      color: #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 0.5em 1em;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #inject-btn { background: #0a0; color: white; }
+    #export-btn { background-color: #007acc; color: white; border: none; }
+  </style>
+</head>
+<body>
+
+<h2>🧠 Motor N – Simulación Informacional DIG (Animado)</h2>
+<canvas id="campo" width="250" height="250"></canvas>
+
+<button id="inject-btn" onclick="inyectarPatron('ansiedad')">💥 Inyectar patrón: ansiedad</button>
+<button id="export-btn" onclick="exportarOutput()">📤 Exportar Output como .json</button>
+
+<div id="noutput-console">🧠 Aún no hay datos.</div>
+<h3>📜 Historial de Outputs</h3>
+<div id="log-output">Sin entradas aún.</div>
+
+<script>
+  const ancho = 50;
+  const alto = 50;
+  let campo = [];
+  let historialOutputs = [];
+  let ciclos = 0;
+  let activo = false;
+  let zonaInyectada = null;
+  let patronActual = null;
+  let disolucionEsperada = 100; // ciclos
+
+  function inicializarCampo() {
+    campo = Array.from({ length: alto }, () =>
+      Array.from({ length: ancho }, () => Math.random() * 0.1)
+    );
+  }
+
+  function inyectarPatron(nombre) {
+    const zona = {
+      x: 21,
+      y: 21,
+      ancho: 7,
+      alto: 7
+    };
+
+    for (let i = 0; i < zona.alto; i++) {
+      for (let j = 0; j < zona.ancho; j++) {
+        const y = zona.y + i;
+        const x = zona.x + j;
+        if (y < alto && x < ancho) {
+          campo[y][x] = 0.9 + Math.random() * 0.1;
+        }
+      }
+    }
+
+    zonaInyectada = zona;
+    patronActual = nombre;
+    ciclos = 0;
+    activo = true;
+  }
+
+  function evolucionarCampo() {
+    let nuevoCampo = JSON.parse(JSON.stringify(campo));
+
+    for (let y = 1; y < alto - 1; y++) {
+      for (let x = 1; x < ancho - 1; x++) {
+        let sumaVecinos =
+          campo[y - 1][x] +
+          campo[y + 1][x] +
+          campo[y][x - 1] +
+          campo[y][x + 1];
+
+        nuevoCampo[y][x] = (campo[y][x] * 0.9) + (sumaVecinos * 0.025);
+      }
+    }
+
+    campo = nuevoCampo;
+  }
+
+  function cicloMotor() {
+    if (activo) {
+      evolucionarCampo();
+      ciclos++;
+      if (ciclos >= disolucionEsperada) {
+        activo = false;
+        const output = generarOutput(patronActual, zonaInyectada);
+        mostrarOutputEnConsola(output);
+        actualizarLog();
+      }
+    }
+    renderizarCampo();
+    requestAnimationFrame(cicloMotor);
+  }
+
+  function renderizarCampo() {
+    const canvas = document.getElementById("campo");
+    const ctx = canvas.getContext("2d");
+    const escalaX = canvas.width / ancho;
+    const escalaY = canvas.height / alto;
+
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) {
+        const val = campo[y][x];
+        const color = Math.floor(val * 255);
+        ctx.fillStyle = `rgb(${color},${color},${color})`; ctx.fillRect(x * escalaX, y * escalaY, escalaX, escalaY);
+      }
+    }
+  }
+
+  function calcularVarianza(promedio) {
+    let sum = 0;
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) {
+        sum += Math.pow(campo[y][x] - promedio, 2);
+      }
+    }
+    return sum / (ancho * alto);
+  }
+
+  function generarOutput(patron, zona) {
+    let total = 0;
+    let maxVal = 0;
+    let maxPos = { x: 0, y: 0 };
+
+    for (let y = 0; y < alto; y++) {
+      for (let x = 0; x < ancho; x++) {
+        const val = campo[y][x];
+        total += val;
+        if (val > maxVal) {
+          maxVal = val;
+          maxPos = { x, y };
+        }
+      }
+    }
+
+    const promedio = total / (ancho * alto);
+    const varianza = calcularVarianza(promedio);
+
+    return {
+      timestamp: new Date().toISOString(),
+      patron_inyectado: patron,
+      modo_inyeccion: "reemplazar",
+      zona_afectada: zona,
+      entropia_global: varianza,
+      max_entropia: {
+        valor: maxVal,
+        posicion: maxPos
+      },
+      promedio_global: promedio,
+      tiempo_disolucion_estimado: `${ciclos} ciclos`,
+      resonancia_detectada: false,
+      exportado_como_audio: "no",
+      notas: `Respuesta al patrón '${patron}'.`
+    };
+  }
+
+  function mostrarOutputEnConsola(output) {
+    const consola = document.getElementById("noutput-console");
+    consola.innerHTML = `
+🧠 Patrón inyectado: ${output.patron_inyectado}
+📍 Zona afectada: (${output.zona_afectada.x},${output.zona_afectada.y}) – ${output.zona_afectada.ancho}x${output.zona_afectada.alto}
+📊 Entropía global: ${output.entropia_global.toFixed(5)}
+🔥 Pico en (${output.max_entropia.posicion.x}, ${output.max_entropia.posicion.y}) → ${output.max_entropia.valor.toFixed(5)}
+📈 Promedio global: ${output.promedio_global.toFixed(3)}
+⏳ Disolución estimada: ${output.tiempo_disolucion_estimado}
+🎵 Sonificado: ${output.exportado_como_audio}
+📌 Notas: ${output.notas}
+    `;
+    historialOutputs.push(output);
+  }
+
+  function actualizarLog() {
+    const log = document.getElementById("log-output");
+    log.innerHTML = historialOutputs.map((o, i) =>
+      `#${i + 1} [${o.timestamp}] → ${o.patron_inyectado} | Entropía: ${o.entropia_global.toFixed(5)} | Pico: ${o.max_entropia.valor.toFixed(5)} @ (${o.max_entropia.posicion.x},${o.max_entropia.posicion.y})`
+    ).join('\n');
+  }
+
+  function exportarOutput() {
+    if (historialOutputs.length === 0) {
+      alert("No hay datos para exportar.");
+      return;
+    }
+
+    const data = JSON.stringify(historialOutputs, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `noutput_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  inicializarCampo();
+  renderizarCampo();
+  cicloMotor();
+</script>
+</body>
+</html>
