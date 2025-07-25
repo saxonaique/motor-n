@@ -1,0 +1,122 @@
+[
+  {
+    "timestamp": "2025-07-25T10:40:21.038Z",
+    "patron_inyectado": "ansiedad",
+    "modo_inyeccion": "acumulativo",
+    "zona_afectada": {
+      "x": 21,
+      "y": 21,
+      "ancho": 7,
+      "alto": 7
+    },
+    "entropia_global": 0.0015018789917145116,
+    "max_entropia": {
+      "valor": 0.3794326854938257,
+      "posicion": {
+        "x": 26,
+        "y": 21
+      }
+    },
+    "promedio_global": 0.05320626336682485,
+    "tiempo_disolucion_estimado": "19 ciclos",
+    "resonancia_detectada": false,
+    "exportado_como_audio": "no",
+    "notas": "Respuesta al patrón 'ansiedad'. Intensidad: 37.9%"
+  },
+  {
+    "timestamp": "2025-07-25T10:40:23.821Z",
+    "patron_inyectado": "ansiedad",
+    "modo_inyeccion": "acumulativo",
+    "zona_afectada": {
+      "x": 21,
+      "y": 21,
+      "ancho": 7,
+      "alto": 7
+    },
+    "entropia_global": 0.001585670568724867,
+    "max_entropia": {
+      "valor": 0.5347257002590629,
+      "posicion": {
+        "x": 25,
+        "y": 25
+      }
+    },
+    "promedio_global": 0.10387116283465365,
+    "tiempo_disolucion_estimado": "18 ciclos",
+    "resonancia_detectada": false,
+    "exportado_como_audio": "no",
+    "notas": "Respuesta al patrón 'ansiedad'. Intensidad: 53.5%"
+  },
+  {
+    "timestamp": "2025-07-25T10:40:24.661Z",
+    "patron_inyectado": "ansiedad",
+    "modo_inyeccion": "acumulativo",
+    "zona_afectada": {
+      "x": 21,
+      "y": 21,
+      "ancho": 7,
+      "alto": 7
+    },
+    "entropia_global": 0.0031195346932170417,
+    "max_entropia": {
+      "valor": 0.7399892089486906,
+      "posicion": {
+        "x": 25,
+        "y": 24
+      }
+    },
+    "promedio_global": 0.10744487917681354,
+    "tiempo_disolucion_estimado": "18 ciclos",
+    "resonancia_detectada": false,
+    "exportado_como_audio": "no",
+    "notas": "Respuesta al patrón 'ansiedad'. Intensidad: 74.0%"
+  },
+  {
+    "timestamp": "2025-07-25T10:40:25.006Z",
+    "patron_inyectado": "ansiedad",
+    "modo_inyeccion": "acumulativo",
+    "zona_afectada": {
+      "x": 21,
+      "y": 21,
+      "ancho": 7,
+      "alto": 7
+    },
+    "entropia_global": 0.005716035392752317,
+    "max_entropia": {
+      "valor": 0.8302475713611082,
+      "posicion": {
+        "x": 24,
+        "y": 22
+      }
+    },
+    "promedio_global": 0.11069277693159904,
+    "tiempo_disolucion_estimado": "18 ciclos",
+    "resonancia_detectada": false,
+    "exportado_como_audio": "no",
+    "notas": "Respuesta al patrón 'ansiedad'. Intensidad: 83.0%"
+  },
+  {
+    "timestamp": "2025-07-25T10:40:27.018Z",
+    "patron_inyectado": "evolución",
+    "modo_inyeccion": "acumulativo",
+    "zona_afectada": {
+      "x": 21,
+      "y": 21,
+      "ancho": 7,
+      "alto": 7
+    },
+    "entropia_global": 0.004029238913418155,
+    "max_entropia": {
+      "valor": 0.6581360766481822,
+      "posicion": {
+        "x": 25,
+        "y": 24
+      }
+    },
+    "promedio_global": 0.11060343194181625,
+    "tiempo_disolucion_estimado": "18 ciclos",
+    "resonancia_detectada": false,
+    "exportado_como_audio": "no",
+    "notas": "Respuesta al patrón 'evolución'. Intensidad: 65.8%"
+  }
+]

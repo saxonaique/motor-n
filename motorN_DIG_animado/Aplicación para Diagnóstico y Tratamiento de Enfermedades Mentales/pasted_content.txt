@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Laboratorio Motor N - HTML</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 1rem;
+    }
+    canvas {
+      border: 2px solid #94a3b8;
+      margin-bottom: 1rem;
+    }
+    button {
+      margin: 0.25rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      background-color: #0ea5e9;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #info, #inputData, #analysisData {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: #7dd3fc;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Laboratorio del Motor N</h1>
+  <canvas id="canvas" width="500" height="500"></canvas>
+  <div>
+    <button onclick="injectPulse()">Inyectar Pulso</button>
+    <button onclick="injectWow()">Inyectar Wow!</button>
+    <button onclick="injectAnxiety()">Inyectar Ansiedad</button>
+    <button onclick="injectCalm()">Inyectar Calma</button>
+    <button onclick="resetField()">Resetear Campo</button>
+    <button onclick="saveField()">💾 Guardar Estado</button>
+    <button onclick="loadField()">📂 Cargar Estado</button>
+  </div>
+  <div id="info"></div>
+  <div id="inputData"></div>
+  <div id="analysisData"></div>  <script>
+    const dim = 50;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const cellSize = canvas.width / dim;
+    let field = [];
+    let maxEntropyPoint = { x: 0, y: 0 };
+    let previousEntropy = 0;
+    let injectionType = null;
+
+    function resetField() {
+      field = [];
+      for (let r = 0; r < dim; r++) {
+        field[r] = [];
+        for (let c = 0; c < dim; c++) {
+          field[r][c] = 0.4 + Math.random() * 0.2;
+        }
+      }
+      previousEntropy = measureGlobalEntropy();
+    }
+
+    function drawField() {
+      let maxEntropy = -Infinity;
+      for (let r = 0; r < dim; r++) {
+        for (let c = 0; c < dim; c++) {
+          const entropy = calculateEntropy(r, c);
+          const h = Math.min(Math.floor(entropy * 255), 255);
+          ctx.fillStyle = `rgb(${h}, 50, ${255 - h})`;
+          ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+          if (entropy > maxEntropy) {
+            maxEntropy = entropy;
+            maxEntropyPoint = { x: c, y: r };
+          }
+        }
+      }
+      ctx.strokeStyle = 'yellow';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(maxEntropyPoint.x * cellSize, maxEntropyPoint.y * cellSize, cellSize, cellSize);
+    }
+
+    function calculateEntropy(r, c) {
+      let sum = 0, count = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < dim && nc >= 0 && nc < dim) {
+            sum += field[nr][nc];
+            count++;
+          }
+        }
+      }
+      const avg = sum / count;
+      let variance = 0;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < dim && nc >= 0 && nc < dim) {
+            const diff = field[nr][nc] - avg;
+            variance += diff * diff;
+          }
+        }
+      }
+      return variance / count;
+    }
+
+    function measureGlobalEntropy() {
+      const values = field.flat();
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = values.reduce((a, b) => a + (b - avg) ** 2, 0) / values.length;
+      return variance;
+    }
+
+    function diffuseStep(alpha = 0.05) {
+      const next = JSON.parse(JSON.stringify(field));
+      for (let r = 0; r < dim; r++) {
+        for (let c = 0; c < dim; c++) {
+          let sum = 0, count = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < dim && nc >= 0 && nc < dim) {
+                sum += field[nr][nc];
+                count++;
+              }
+            }
+          }
+          const avg = sum / count;
+          next[r][c] += alpha * (avg - field[r][c]);
+        }
+      }
+      field = next;
+    }
+
+    function injectPattern(pattern, offsetX, offsetY, type = "personalizado") {
+      for (let r = 0; r < pattern.length; r++) {
+        for (let c = 0; c < pattern[0].length; c++) {
+          const rr = offsetY + r;
+          const cc = offsetX + c;
+          if (rr >= 0 && rr < dim && cc >= 0 && cc < dim) {
+            field[rr][cc] = pattern[r][c];
+          }
+        }
+      }
+      injectionType = type;
+      document.getElementById('inputData').textContent = `🧠 Entrada: patrón "${type}" inyectado.`;
+      setTimeout(analyzeResponse, 500);
+    }
+
+    function analyzeResponse() {
+      const currentEntropy = measureGlobalEntropy();
+      const delta = currentEntropy - previousEntropy;
+      const change = delta >= 0 ? `+${delta.toFixed(6)}` : delta.toFixed(6);
+      document.getElementById('analysisData').textContent = `📈 Cambio de entropía tras "${injectionType}": ${change}`;
+      previousEntropy = currentEntropy;
+    }
+
+    function injectPulse() {
+      const pulse = Array(5).fill().map(() => Array(5).fill(1.0));
+      injectPattern(pulse, 22, 22, "pulso");
+    }
+
+    function injectWow() {
+      const wow = [
+        [0, 0.8, 0, 0.8, 0],
+        [0.8, 0, 0.8, 0, 0.8],
+        [0, 0.8, 1.0, 0.8, 0],
+        [0.8, 0, 0.8, 0, 0.8],
+        [0, 0.8, 0, 0.8, 0]
+      ];
+      injectPattern(wow, 22, 22, "wow");
+    }
+
+    function injectAnxiety() {
+      const anxiety = Array(7).fill().map(() => Array(7).fill().map(() => Math.random()));
+      injectPattern(anxiety, 21, 21, "ansiedad");
+    }
+
+    function injectCalm() {
+      const calm = Array(7).fill().map((_, r) =>
+        Array(7).fill().map((_, c) => 0.5 + 0.1 * Math.sin((r + c) / 2))
+      );
+      injectPattern(calm, 21, 21, "calma");
+    }
+
+    function updateInfo() {
+      const values = field.flat();
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      const varianza = values.reduce((a, b) => a + (b - avg) ** 2, 0) / values.length;
+      document.getElementById('info').textContent = `📊 Varianza Global: ${varianza.toFixed(6)} | 🔥 Entropía Máxima en (${maxEntropyPoint.x}, ${maxEntropyPoint.y})`;
+    }
+
+    function saveField() {
+      const dataStr = JSON.stringify(field);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nfield_estado.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function loadField() {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (Array.isArray(data) && data.length === dim) {
+              field = data;
+            }
+          } catch (e) {
+            alert("Error al cargar el archivo");
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    function loop() {
+      diffuseStep();
+      drawField();
+      updateInfo();
+      requestAnimationFrame(loop);
+    }
+
+    resetField();
+    loop();
+  </script></body>
+</html>

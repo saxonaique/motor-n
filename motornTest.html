@@ -34,17 +34,21 @@
       overflow-y: auto;
       margin-top: 15px;
     }
-    button {
+    .btn {
       margin-top: 10px;
       padding: 0.5em 1em;
       font-weight: bold;
       border-radius: 5px;
       cursor: pointer;
+      border: none;
+      margin-right: 5px;
     }
-    #inject-btn { background: #0a0; color: white; border: none; }
-    #animate-btn { background: #ff6600; color: white; border: none; }
-    #reset-btn { background: #cc0000; color: white; border: none; }
-    #export-btn { background-color: #007acc; color: white; border: none; }
+    #inject-btn { background: #0a0; color: white; }
+    #animate-btn { background: #ff6600; color: white; }
+    #reset-btn { background: #cc0000; color: white; }
+    #export-btn { background-color: #007acc; color: white; }
+    .btn-import { background-color: #007acc; color: white; margin-left: 10px; }
+    .input-file { display: none; }
     input[type="range"] { width: 200px; }
     label { color: #ccc; }
   </style>
@@ -54,10 +58,12 @@
 <h2>🧠 Motor N – Simulación Informacional DIG</h2>
 <canvas id="campo" width="400" height="400"></canvas>
 
-<button id="inject-btn" onclick="inyectarPatron('ansiedad')">💥 Inyectar patrón: ansiedad</button>
-<button id="animate-btn" onclick="toggleAnimacion()">▶️ Iniciar Animación</button>
-<button id="reset-btn" onclick="resetearCampo()">🔄 Reset Campo</button>
-<button id="export-btn" onclick="exportarOutput()">📤 Exportar Output como .json</button>
+<button id="inject-btn" type="button" class="btn" onclick="inyectarPatron('ansiedad')">💥 Inyectar patrón: ansiedad</button>
+<button id="animate-btn" type="button" class="btn" onclick="toggleAnimacion()">▶️ Iniciar Animación</button>
+<button id="reset-btn" type="button" class="btn" onclick="resetearCampo()">🔄 Reset Campo</button>
+<button id="export-btn" type="button" class="btn" onclick="exportarOutput()">📤 Exportar Output como .json</button>
+<button id="import-btn" type="button" class="btn btn-import" onclick="document.getElementById('import-json').click()">📥 Importar Output (.json)</button>
+<input type="file" id="import-json" accept="application/json" class="input-file" onchange="importarOutput(event)">
 
 <div style="margin: 10px 0;">
   <label>Velocidad: </label>
@@ -332,6 +338,32 @@
   function cambiarVelocidad(valor) {
     velocidadAnimacion = parseInt(valor);
     document.getElementById('speed-display').textContent = valor + 'ms';
+  }
+
+  // Importar datos desde un archivo JSON y agregarlos al historial
+  function importarOutput(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const nuevosDatos = JSON.parse(e.target.result);
+        if (Array.isArray(nuevosDatos)) {
+          historialOutputs = historialOutputs.concat(nuevosDatos);
+        } else if (typeof nuevosDatos === 'object') {
+          historialOutputs.push(nuevosDatos);
+        } else {
+          alert('El archivo no tiene el formato esperado.');
+          return;
+        }
+        actualizarLog();
+        mostrarOutputEnConsola(historialOutputs[historialOutputs.length-1]);
+        alert('Datos importados correctamente.');
+      } catch (err) {
+        alert('Error al leer el archivo JSON.');
+      }
+    };
+    reader.readAsText(file);
   }
 
   // Inicializar
