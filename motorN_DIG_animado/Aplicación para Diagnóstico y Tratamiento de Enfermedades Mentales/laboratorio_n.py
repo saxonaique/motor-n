@@ -19,6 +19,89 @@ class LaboratorioN:
         self.tasa_muestreo = tasa_muestreo
         print("🔬 Laboratorio N inicializado.")
         print(f"Tasa de muestreo configurada a {tasa_muestreo} Hz.")
+        # --- Motor N: campo 2D ---
+        self.grid_size = 50
+        self.resetear_campo()
+
+    def evolucionar_campo(self):
+        """
+        Aplica reglas de difusión y decaimiento sobre el campo (motor N).
+        """
+        nuevo = self.campo.copy()
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                vecinos = self.campo[max(0,i-1):min(self.grid_size,i+2), max(0,j-1):min(self.grid_size,j+2)]
+                media_vecinos = np.mean(vecinos)
+                nuevo[i, j] += 0.15 * (media_vecinos - nuevo[i, j])
+                nuevo[i, j] *= 0.99  # decaimiento
+        self.campo = np.clip(nuevo, 0, 1)
+
+    def get_campo(self):
+        """
+        Devuelve una copia del campo actual (para visualización).
+        """
+        return self.campo.copy()
+
+    def resetear_campo(self):
+        """
+        Reinicia el campo con valores aleatorios bajos.
+        """
+        self.campo = np.random.rand(self.grid_size, self.grid_size) * 0.15
+
+    def inyectar_patron_ansiedad(self):
+        """
+        Inyecta un patrón de alta intensidad (ansiedad) en el centro del campo.
+        """
+        centro = self.grid_size // 2
+        radio = 5
+        self.campo[centro-radio:centro+radio, centro-radio:centro+radio] = 1.0
+
+    def calcular_metricas(self):
+        """
+        Calcula entropía, varianza y valor máximo del campo.
+        Guarda el resultado en self.metricas_ultimas.
+        """
+        import numpy as np
+        campo = self.campo
+        # Entropía de Shannon
+        hist, _ = np.histogram(campo, bins=20, range=(0,1), density=True)
+        hist = hist[hist>0]
+        entropia = -np.sum(hist * np.log2(hist)) if len(hist)>0 else 0.0
+        varianza = np.var(campo)
+        maximo = np.max(campo)
+        self.metricas_ultimas = {
+            'entropia': float(entropia),
+            'varianza': float(varianza),
+            'maximo': float(maximo)
+        }
+        return self.metricas_ultimas
+
+    def exportar_estado(self, ruta):
+        """
+        Exporta el campo y métricas actuales a un archivo JSON.
+        """
+        import json
+        self.calcular_metricas()
+        data = {
+            'campo': self.campo.tolist(),
+            'metricas': self.metricas_ultimas
+        }
+        with open(ruta, 'w') as f:
+            json.dump(data, f, indent=2)
+
+    def importar_estado(self, ruta):
+        """
+        Importa el campo y métricas desde un archivo JSON.
+        """
+        import json
+        with open(ruta, 'r') as f:
+            data = json.load(f)
+        if 'campo' in data:
+            import numpy as np
+            self.campo = np.array(data['campo'], dtype=float)
+        if 'metricas' in data:
+            self.metricas_ultimas = data['metricas']
+
 
     def encoder(self, nombre_archivo_wav):
         """
