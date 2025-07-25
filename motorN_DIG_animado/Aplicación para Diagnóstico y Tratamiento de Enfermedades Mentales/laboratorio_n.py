@@ -23,18 +23,26 @@ class LaboratorioN:
         self.grid_size = 50
         self.resetear_campo()
 
-    def evolucionar_campo(self):
+    def evolucionar_campo(self, alpha=0.05):
         """
-        Aplica reglas de difusión y decaimiento sobre el campo (motor N).
+        Aplica una regla de difusión discreta: cada celda evoluciona hacia el promedio de su vecindario 3x3.
         """
         nuevo = self.campo.copy()
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                vecinos = self.campo[max(0,i-1):min(self.grid_size,i+2), max(0,j-1):min(self.grid_size,j+2)]
-                media_vecinos = np.mean(vecinos)
-                nuevo[i, j] += 0.15 * (media_vecinos - nuevo[i, j])
-                nuevo[i, j] *= 0.99  # decaimiento
+        for r in range(self.grid_size):
+            for c in range(self.grid_size):
+                sub = self.campo[max(0, r - 1):min(self.grid_size, r + 2), max(0, c - 1):min(self.grid_size, c + 2)]
+                avg = np.mean(sub)
+                nuevo[r, c] += alpha * (avg - self.campo[r, c])
         self.campo = np.clip(nuevo, 0, 1)
+
+    def calcular_varianza_local(self, r, c):
+        """
+        Calcula la varianza local 3x3 alrededor de la celda (r, c).
+        """
+        sub = self.campo[max(0, r - 1):min(self.grid_size, r + 2), max(0, c - 1):min(self.grid_size, c + 2)]
+        avg = np.mean(sub)
+        varianza = np.mean((sub - avg) ** 2)
+        return varianza
 
     def get_campo(self):
         """

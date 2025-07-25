@@ -18,14 +18,53 @@ class LaboratorioNApp:
         self.lab = LaboratorioN()
         self.resultados = None
 
-        # --- Canvas para visualizar motor-n ---
+        # --- Layout principal horizontal ---
+        self.frame_principal = tk.Frame(root)
+        self.frame_principal.pack(fill=tk.BOTH, expand=True)
+        # --- Canvas a la izquierda ---
         self.canvas_size = 400
         self.grid_size = 50
         self.cell_size = self.canvas_size // self.grid_size
         self.animando = False
+        self.canvas = tk.Canvas(self.frame_principal, width=self.canvas_size, height=self.canvas_size, bg='black')
+        self.canvas.pack(side=tk.LEFT, padx=10, pady=10)
+        # --- Panel de métricas y gráfico a la derecha ---
+        self.frame_metricas = tk.Frame(self.frame_principal)
+        self.frame_metricas.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
-        self.canvas = tk.Canvas(root, width=self.canvas_size, height=self.canvas_size, bg='black')
-        self.canvas.pack(pady=10)
+        # --- Box gráfico de métricas y métricas a la derecha ---
+        import matplotlib
+        matplotlib.use('Agg')  # Evita conflictos de backend
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        import matplotlib.pyplot as plt
+        self.metricas_hist = {'entropia': [], 'varianza': [], 'maximo': [], 'steps': []}
+        # El gráfico y el label ahora están en frame_metricas (a la derecha)
+        self.frame_grafico = tk.Frame(self.frame_metricas)
+        self.frame_grafico.pack(pady=5)
+        self.fig, self.ax = plt.subplots(figsize=(4,2), dpi=100)
+        self.ax.set_title('Evolución de Métricas')
+        self.ax.set_xlabel('Paso')
+        self.ax.set_ylabel('Valor')
+        self.linea_ent, = self.ax.plot([], [], label='Entropía', color='orange')
+        self.linea_var, = self.ax.plot([], [], label='Varianza', color='blue')
+        self.linea_max, = self.ax.plot([], [], label='Máximo', color='green')
+        self.ax.legend()
+        self.canvas_grafico = FigureCanvasTkAgg(self.fig, master=self.frame_grafico)
+        self.canvas_grafico.get_tk_widget().pack()
+        self.label_metricas = tk.Label(self.frame_metricas, text="", font=("Arial", 12), pady=5)
+        self.label_metricas.pack()
+        # Box gráfico solo para la varianza
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        import matplotlib.pyplot as plt
+        self.fig_var, self.ax_var = plt.subplots(figsize=(4,1.2), dpi=100)
+        self.ax_var.set_title('Evolución de Varianza')
+        self.ax_var.set_xlabel('Paso')
+        self.ax_var.set_ylabel('Var')
+        self.linea_varianza, = self.ax_var.plot([], [], color='#0077ff', label='Varianza')
+        self.ax_var.legend()
+        self.canvas_varianza = FigureCanvasTkAgg(self.fig_var, master=self.frame_metricas)
+        self.canvas_varianza.get_tk_widget().pack(pady=(5,10))
+
 
         frame_controles = tk.Frame(root)
         frame_controles.pack(pady=5)
@@ -57,13 +96,7 @@ class LaboratorioNApp:
         self.texto_resultado = tk.Text(root, height=10, width=60, state='disabled')
         self.texto_resultado.pack(pady=10)
 
-        # --- Métricas ---
-        self.label_metricas = tk.Label(root, text="", font=("Consolas", 10), anchor="w", justify="left")
-        self.label_metricas.pack(pady=(0,5), fill="x")
-        self.actualizar_metricas()
 
-        self.boton_guardar = tk.Button(root, text="Guardar Resultados", command=self.guardar, state='disabled')
-        self.boton_guardar.pack(pady=5)
 
         self.dibujar_campo()
 
@@ -144,10 +177,34 @@ class LaboratorioNApp:
     def actualizar_metricas(self):
         metricas = self.lab.calcular_metricas() if hasattr(self.lab, 'calcular_metricas') else None
         if metricas:
-            texto = f"Entropía: {metricas['entropia']:.3f}    Varianza: {metricas['varianza']:.3f}    Máximo: {metricas['maximo']:.3f}"
+            texto = f"Entropía: {metricas['entropia']:.3f}    Máximo: {metricas['maximo']:.3f}"
+            # Actualiza historial de métricas
+            paso = len(self.metricas_hist['steps'])
+            self.metricas_hist['entropia'].append(metricas['entropia'])
+            self.metricas_hist['varianza'].append(metricas['varianza'])
+            self.metricas_hist['maximo'].append(metricas['maximo'])
+            self.metricas_hist['steps'].append(paso)
+            self.actualizar_grafico_metricas()
+            self.actualizar_grafico_varianza()
         else:
             texto = ""
         self.label_metricas.config(text=texto)
+
+    def actualizar_grafico_varianza(self):
+        pasos = self.metricas_hist['steps']
+        self.linea_varianza.set_data(pasos, self.metricas_hist['varianza'])
+        self.ax_var.relim()
+        self.ax_var.autoscale_view()
+        self.canvas_varianza.draw()
+
+    def actualizar_grafico_metricas(self):
+        pasos = self.metricas_hist['steps']
+        self.linea_ent.set_data(pasos, self.metricas_hist['entropia'])
+        self.linea_var.set_data(pasos, self.metricas_hist['varianza'])
+        self.linea_max.set_data(pasos, self.metricas_hist['maximo'])
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.canvas_grafico.draw()
 
     def seleccionar_archivo(self):
         archivo = filedialog.askopenfilename(filetypes=[("Archivos WAV o JSON", "*.wav *.json"), ("Todos los archivos", "*.*")])
