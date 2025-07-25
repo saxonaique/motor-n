@@ -93,6 +93,9 @@ class LaboratorioNApp:
         self.boton_analizar = tk.Button(root, text="Analizar", command=self.analizar)
         self.boton_analizar.pack(pady=10)
 
+        self.boton_comparar = tk.Button(root, text="Comparar", command=self.comparar_archivos, bg="#aaffaa")
+        self.boton_comparar.pack(pady=5)
+
         self.texto_resultado = tk.Text(root, height=10, width=60, state='disabled')
         self.texto_resultado.pack(pady=10)
 
@@ -229,6 +232,17 @@ class LaboratorioNApp:
                     arr = np.pad(arr, (0, self.grid_size * self.grid_size - arr.size), mode='constant')
                 arr = arr.reshape((self.grid_size, self.grid_size))
                 arr = (arr - arr.min()) / (arr.max() - arr.min() + 1e-8)  # normaliza a [0,1]
+                # Diagnóstico: chequeo de campo plano
+                if np.allclose(arr, arr.flat[0]):
+                    messagebox.showwarning("Advertencia de campo plano", "Todos los valores del campo son iguales tras cargar el archivo. Puede que la imagen PNG sea completamente negra/blanca o que la normalización no tenga contraste.")
+                    # Mostrar histograma de valores para depuración
+                    import matplotlib.pyplot as plt
+                    plt.figure("Histograma de valores del campo")
+                    plt.hist(arr.flatten(), bins=20, color='blue', alpha=0.7)
+                    plt.title("Histograma de valores del campo tras cargar PNG")
+                    plt.xlabel("Valor")
+                    plt.ylabel("Frecuencia")
+                    plt.show()
                 self.lab.campo = arr
                 self.dibujar_campo()
                 self.resultados = resultado
@@ -254,6 +268,71 @@ class LaboratorioNApp:
             self.texto_resultado.config(state='disabled')
             messagebox.showerror("Error en el procesamiento", str(e))
 
+
+    def comparar_archivos(self):
+        from tkinter import filedialog, Toplevel, Label
+        import numpy as np
+        import matplotlib.pyplot as plt
+        archivos = filedialog.askopenfilenames(
+            title="Selecciona dos archivos para comparar\n(Si no puedes seleccionar dos archivos, mantén pulsada la tecla Ctrl (Windows/Linux) o Cmd (Mac) mientras seleccionas)",
+            filetypes=[("Archivos WAV, PNG o JSON", "*.wav *.png *.json"), ("Todos los archivos", "*.*")]
+        )
+        if len(archivos) != 2:
+            messagebox.showwarning(
+                "Comparar archivos",
+                "Debes seleccionar exactamente dos archivos.\n\nSi no puedes seleccionar dos archivos, mantén pulsada la tecla Ctrl (Windows/Linux) o Cmd (Mac) mientras seleccionas."
+            )
+            return
+        resultados = []
+        campos = []
+        for archivo in archivos:
+            resultado = self.lab.encoder(archivo)
+            arr = np.array(resultado)
+            if arr.size >= self.grid_size * self.grid_size:
+                arr = arr[:self.grid_size * self.grid_size]
+            else:
+                arr = np.pad(arr, (0, self.grid_size * self.grid_size - arr.size), mode='constant')
+            arr = arr.reshape((self.grid_size, self.grid_size))
+            arr = (arr - arr.min()) / (arr.max() - arr.min() + 1e-8)
+            campos.append(arr)
+            resultados.append(resultado)
+        # Mostrar ambos campos en ventanas emergentes usando matplotlib
+        # Mostrar ambos campos y su diferencia en ventanas emergentes usando matplotlib
+        import numpy as np
+        diff = campos[0] - campos[1]
+        fig, axs = plt.subplots(1, 3, figsize=(13, 4))
+        im0 = axs[0].imshow(campos[0], cmap='inferno', vmin=0, vmax=1)
+        axs[0].set_title(f"Campo 1\n{os.path.basename(archivos[0])}")
+        axs[0].axis('off')
+        im1 = axs[1].imshow(campos[1], cmap='inferno', vmin=0, vmax=1)
+        axs[1].set_title(f"Campo 2\n{os.path.basename(archivos[1])}")
+        axs[1].axis('off')
+        # Diferencia centrada en cero
+        vmax = np.max(np.abs(diff))
+        im2 = axs[2].imshow(diff, cmap='bwr', vmin=-vmax, vmax=vmax)
+        axs[2].set_title("Diferencia (Campo 1 - Campo 2)")
+        axs[2].axis('off')
+        fig.colorbar(im2, ax=axs, orientation='vertical', fraction=0.02)
+        plt.suptitle("Comparación de Campos y Diferencia")
+        plt.tight_layout()
+        plt.show()
+        # Preguntar al usuario cuál campo mostrar en el canvas principal
+        from tkinter.simpledialog import askinteger
+        opcion = askinteger(
+            "Campo a visualizar",
+            "¿Qué campo quieres visualizar en el canvas principal?\n"
+            "1: {}\n2: {}\n3: Diferencia (Campo 1 - Campo 2)".format(os.path.basename(archivos[0]), os.path.basename(archivos[1])),
+            minvalue=1, maxvalue=3)
+        if opcion in [1, 2]:
+            self.lab.campo = campos[opcion-1]
+            self.dibujar_campo()
+        elif opcion == 3:
+            # Normalizar diferencia a [0,1] para visualización en el canvas
+            diff_norm = (diff - diff.min()) / (diff.max() - diff.min() + 1e-8)
+            self.lab.campo = diff_norm
+            self.dibujar_campo()
+        else:
+            messagebox.showinfo("Visualización", "No se seleccionó ningún campo para visualizar.")
 
     def guardar(self):
         if self.resultados is not None:
