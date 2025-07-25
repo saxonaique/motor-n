@@ -207,7 +207,7 @@ class LaboratorioNApp:
         self.canvas_grafico.draw()
 
     def seleccionar_archivo(self):
-        archivo = filedialog.askopenfilename(filetypes=[("Archivos WAV o JSON", "*.wav *.json"), ("Todos los archivos", "*.*")])
+        archivo = filedialog.askopenfilename(filetypes=[("Archivos WAV, PNG o JSON", "*.wav *.png *.json"), ("Todos los archivos", "*.*")])
         if archivo:
             self.archivo_var.set(archivo)
 
@@ -232,7 +232,13 @@ class LaboratorioNApp:
                 self.lab.campo = arr
                 self.dibujar_campo()
                 self.resultados = resultado
-                self.texto_resultado.insert(tk.END, f"[Archivo .wav] Resultado del encoder:\n{resultado}")
+                # Mostrar tipo de archivo procesado
+                if archivo.lower().endswith('.wav'):
+                    self.texto_resultado.insert(tk.END, f"[Archivo .wav] Resultado del encoder:\n{resultado}")
+                elif archivo.lower().endswith('.png'):
+                    self.texto_resultado.insert(tk.END, f"[Archivo .png] Resultado del encoder (imagen espectral):\n{resultado}")
+                else:
+                    self.texto_resultado.insert(tk.END, f"[Archivo] Resultado del encoder:\n{resultado}")
             else:
                 # Procesar el campo actual del autómata
                 print("[2. PROCESADOR] Analizando el campo actual del autómata...")

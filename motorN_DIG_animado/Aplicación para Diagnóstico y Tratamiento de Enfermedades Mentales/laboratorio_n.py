@@ -111,35 +111,47 @@ class LaboratorioN:
             self.metricas_ultimas = data['metricas']
 
 
-    def encoder(self, nombre_archivo_wav):
+    def encoder(self, nombre_archivo):
         """
-        Codificador: Lee una señal de audio desde un archivo .wav y la convierte
+        Codificador: Lee una señal de audio (.wav) o una imagen espectral (.png) y la convierte
         en un formato que el campo N puede entender (un array de numpy).
         """
-        print(f"\n[1. ENCODER] Cargando señal desde \'{nombre_archivo_wav}\'...")
+        print(f"\n[1. ENCODER] Cargando señal desde '{nombre_archivo}'...")
+        import os
         try:
-            # Lee la frecuencia y los datos del archivo wav
-            tasa_leida, datos_onda = wav.read(nombre_archivo_wav)
-            
-            # Asegura que la tasa de muestreo sea la esperada
-            if tasa_leida != self.tasa_muestreo:
-                print(f"Advertencia: La tasa de muestreo del archivo ({tasa_leida} Hz) es diferente a la del laboratorio ({self.tasa_muestreo} Hz). Esto puede afectar la calidad.")
-
-            # Si el audio es estéreo, lo convierte a mono promediando los canales
-            if datos_onda.ndim > 1:
-                print("Señal estéreo detectada. Convirtiendo a mono.")
-                datos_onda = datos_onda.mean(axis=1)
-            
-            # Normaliza la señal al rango [-1, 1] para un procesamiento consistente
-            datos_normalizados = datos_onda / np.max(np.abs(datos_onda)) if np.max(np.abs(datos_onda)) > 0 else datos_onda
-            print("Señal cargada y normalizada con éxito.")
-            return datos_normalizados
-
+            ext = os.path.splitext(nombre_archivo)[1].lower()
+            if ext == '.wav':
+                # Lee la frecuencia y los datos del archivo wav
+                tasa_leida, datos_onda = wav.read(nombre_archivo)
+                if tasa_leida != self.tasa_muestreo:
+                    print(f"Advertencia: La tasa de muestreo del archivo es {tasa_leida} Hz, se esperaba {self.tasa_muestreo} Hz.")
+                # Si es estéreo, convierte a mono
+                if len(datos_onda.shape) > 1:
+                    datos_onda = datos_onda.mean(axis=1)
+                # Normaliza la señal al rango [-1, 1]
+                datos_normalizados = datos_onda / np.max(np.abs(datos_onda)) if np.max(np.abs(datos_onda)) > 0 else datos_onda
+                print("Señal cargada y normalizada con éxito.")
+                return datos_normalizados
+            elif ext == '.png':
+                import matplotlib.pyplot as plt
+                img = plt.imread(nombre_archivo)
+                # Si tiene canal alfa, descártalo
+                if img.ndim == 3:
+                    img = img[..., :3]
+                    # Convierte a escala de grises si es RGB
+                    img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
+                img_flat = img.flatten()
+                # Normaliza a [0, 1]
+                img_flat = (img_flat - img_flat.min()) / (img_flat.max() - img_flat.min() + 1e-8)
+                print("Imagen PNG cargada y normalizada con éxito.")
+                return img_flat
+            else:
+                raise ValueError("Formato de archivo no soportado (solo .wav y .png)")
         except FileNotFoundError:
-            print(f"Error: El archivo \'{nombre_archivo_wav}\' no fue encontrado.")
+            print(f"Error: El archivo '{nombre_archivo}' no fue encontrado.")
             return None
         except Exception as e:
-            print(f"Error al leer el archivo de audio: {e}")
+            print(f"Error al leer el archivo: {e}")
             return None
 
     def procesador_entropico(self, señal, nombre_grafico="analisis_espectral_depresion.png"):
