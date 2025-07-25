@@ -41,8 +41,12 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    #inject-btn { background: #0a0; color: white; }
+    #inject-btn { background: #0a0; color: white; border: none; }
+    #animate-btn { background: #ff6600; color: white; border: none; }
+    #reset-btn { background: #cc0000; color: white; border: none; }
     #export-btn { background-color: #007acc; color: white; border: none; }
+    input[type="range"] { width: 200px; }
+    label { color: #ccc; }
   </style>
 </head>
 <body>
@@ -51,7 +55,15 @@
 <canvas id="campo" width="400" height="400"></canvas>
 
 <button id="inject-btn" onclick="inyectarPatron('ansiedad')">💥 Inyectar patrón: ansiedad</button>
+<button id="animate-btn" onclick="toggleAnimacion()">▶️ Iniciar Animación</button>
+<button id="reset-btn" onclick="resetearCampo()">🔄 Reset Campo</button>
 <button id="export-btn" onclick="exportarOutput()">📤 Exportar Output como .json</button>
+
+<div style="margin: 10px 0;">
+  <label>Velocidad: </label>
+  <input type="range" id="speed-slider" min="10" max="500" value="100" onchange="cambiarVelocidad(this.value)">
+  <span id="speed-display">100ms</span>
+</div>
 
 <div id="noutput-console">🧠 Aún no hay datos.</div>
 <h3>📜 Historial de Outputs</h3>
@@ -62,12 +74,18 @@
   const alto = 50;
   let campo = [];
   let historialOutputs = [];
+  let animando = false;
+  let velocidadAnimacion = 100; // ms entre frames
+  let ciclosTranscurridos = 0;
+  let patronInyectado = false;
 
   // Inicializa el campo con valores aleatorios
   function inicializarCampo() {
     campo = Array.from({ length: alto }, () =>
-      Array.from({ length: ancho }, () => Math.random())
+      Array.from({ length: ancho }, () => Math.random() * 0.1)
     );
+    ciclosTranscurridos = 0;
+    patronInyectado = false;
   }
 
   // Inyecta un patrón en una zona específica
@@ -91,6 +109,9 @@
       }
     }
 
+    patronInyectado = true;
+    ciclosTranscurridos = 0;
+    
     const output = generarOutput(nombre, zona);
     mostrarOutputEnConsola(output);
     actualizarLog();
@@ -229,6 +250,88 @@
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  // Evoluciona el campo usando reglas de autómata celular
+  function evolucionarCampo() {
+    let nuevoCampo = JSON.parse(JSON.stringify(campo));
+
+    for (let y = 1; y < alto - 1; y++) {
+      for (let x = 1; x < ancho - 1; x++) {
+        let sumaVecinos =
+          campo[y - 1][x] +
+          campo[y + 1][x] +
+          campo[y][x - 1] +
+          campo[y][x + 1] +
+          campo[y - 1][x - 1] +
+          campo[y - 1][x + 1] +
+          campo[y + 1][x - 1] +
+          campo[y + 1][x + 1];
+
+        let promedio = sumaVecinos / 8;
+        
+        // Reglas de evolución
+        if (campo[y][x] > 0.8) {
+          nuevoCampo[y][x] = campo[y][x] * 0.95; // Decaimiento alto
+        } else if (campo[y][x] < 0.1) {
+          nuevoCampo[y][x] = Math.min(0.3, campo[y][x] + promedio * 0.1); // Crecimiento lento
+        } else {
+          nuevoCampo[y][x] = (campo[y][x] * 0.9) + (promedio * 0.1); // Difusión
+        }
+        
+        // Mantener en rango [0, 1]
+        nuevoCampo[y][x] = Math.max(0, Math.min(1, nuevoCampo[y][x]));
+      }
+    }
+
+    campo = nuevoCampo;
+    ciclosTranscurridos++;
+  }
+
+  // Controla la animación
+  function toggleAnimacion() {
+    const btn = document.getElementById('animate-btn');
+    
+    if (animando) {
+      animando = false;
+      btn.textContent = '▶️ Iniciar Animación';
+      btn.style.background = '#ff6600';
+    } else {
+      animando = true;
+      btn.textContent = '⏸️ Pausar Animación';
+      btn.style.background = '#ff3300';
+      cicloAnimacion();
+    }
+  }
+
+  // Ciclo principal de animación
+  function cicloAnimacion() {
+    if (!animando) return;
+    
+    evolucionarCampo();
+    renderizarCampo();
+    
+    // Actualizar información en tiempo real
+    if (patronInyectado && ciclosTranscurridos % 20 === 0) {
+      const zona = { x: 21, y: 21, ancho: 7, alto: 7 };
+      const output = generarOutput('evolución', zona);
+      mostrarOutputEnConsola(output);
+    }
+    
+    setTimeout(cicloAnimacion, velocidadAnimacion);
+  }
+
+  // Resetea el campo
+  function resetearCampo() {
+    inicializarCampo();
+    renderizarCampo();
+    document.getElementById('noutput-console').innerHTML = '🧠 Campo reseteado.';
+  }
+
+  // Cambia la velocidad de animación
+  function cambiarVelocidad(valor) {
+    velocidadAnimacion = parseInt(valor);
+    document.getElementById('speed-display').textContent = valor + 'ms';
   }
 
   // Inicializar
